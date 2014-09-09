@@ -71,7 +71,7 @@ end
 Motion::Project::App.setup do |app|
 
   app.pods do
-    pod "HockeySDK", "~> 3.5"
+    pod "HockeySDK"
   end
 
   Dir.glob(File.join(File.dirname(__FILE__), '**/*.rb')).each do |file|
