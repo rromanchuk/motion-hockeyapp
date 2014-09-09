@@ -71,7 +71,7 @@ end
 Motion::Project::App.setup do |app|
 
   app.pods do
-    pod "HockeySDK", :git => 'bitstadium/HockeySDK-iOS'
+    pod "HockeySDK", :git => "https://github.com/bitstadium/HockeySDK-iOS.git"
   end
 
   Dir.glob(File.join(File.dirname(__FILE__), '**/*.rb')).each do |file|
