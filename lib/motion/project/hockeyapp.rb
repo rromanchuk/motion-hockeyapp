@@ -44,39 +44,42 @@ class HockeyAppConfig
     {:api_token => api_token, :beta_id => beta_id, :live_id => live_id, :status => status, :notify => notify, :notes_type => notes_type}.inspect
   end
 
-  def configure!
-    @configured ||= begin
-      unless is_cocoapod
-        @config.vendor_project('vendor/HockeySDK/HockeySDK.framework', :static, products: ['HockeySDK'], headers_dir: 'Headers')
-        @config.resources_dirs += [ './vendor/HockeySDK/Resources' ]
-        @config.frameworks += [ 'HockeySDK' ]
+end
+
+module Motion
+  module Project
+    class Config
+
+      attr_accessor :hockeyapp_mode
+
+      variable :hockeyapp
+
+      def hockeyapp(&block)
+        @hockeyapp ||= HockeyAppConfig.new(self)
+        @hockeyapp.instance_eval(&block) unless block.nil?
+        @hockeyapp
       end
-      true
+
+      def hockeyapp?
+        @hockeyapp_mode == true
+      end
+
+    end
+  end
+end
+
+Motion::Project::App.setup do |app|
+
+  app.pods do
+    pod "HockeySDK", "~> 3.5"
+  end
+
+  Dir.glob(File.join(File.dirname(__FILE__), '**/*.rb')).each do |file|
+    if app.respond_to?("exclude_from_detect_dependencies")
+      app.exclude_from_detect_dependencies << file
     end
   end
 
-end
-
-module Motion; module Project; class Config
-
-  attr_accessor :hockeyapp_mode
-
-  variable :hockeyapp
-
-  def hockeyapp(&block)
-    @hockeyapp ||= HockeyAppConfig.new(self)
-    @hockeyapp.instance_eval(&block) unless block.nil?
-    @hockeyapp.configure!
-    @hockeyapp
-  end
-
-  def hockeyapp?
-    @hockeyapp_mode == true
-  end
-
-end; end; end
-
-Motion::Project::App.setup do |app|
   app.files.push(File.join(File.dirname(__FILE__), "launcher.rb"))
 end
 
@@ -94,7 +97,11 @@ namespace 'hockeyapp' do
     Rake::Task["archive#{App.config_mode == :release ? ':distribution' : ''}"].invoke
 
     # An archived version of the .dSYM bundle is needed.
-    app_dsym = App.config.app_bundle('iPhoneOS').sub(/\.app$/, '.dSYM')
+    app_dsym = if App.config.respond_to?(:app_bundle_dsym)
+      App.config.app_bundle_dsym('iPhoneOS')
+    else
+      App.config.app_bundle('iPhoneOS').sub(/\.app$/, '.dSYM')
+    end
     app_dsym_zip = app_dsym + '.zip'
     if !File.exist?(app_dsym_zip) or File.mtime(app_dsym) > File.mtime(app_dsym_zip)
       Dir.chdir(File.dirname(app_dsym)) do
